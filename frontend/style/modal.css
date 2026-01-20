@@ -57,7 +57,7 @@
 
 .small {
   font-size: 13px;
-  color: #9ca3af;
+  color: #ffffff;
 }
 
 .big {
@@ -74,6 +74,7 @@
 .modal-body {
   padding: 20px;
   overflow-y: auto;
+
 }
 
 
@@ -102,7 +103,7 @@
 
 .meta {
   font-size: 13px;
-  color: #9ca3af;
+  color: #ffffff;
 }
 
 .tag {
