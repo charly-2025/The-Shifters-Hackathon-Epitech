@@ -95,13 +95,13 @@ main{
     border-radius: 10px;
 }
 
-.filter.active{
+.filter-active{
+    border-radius: 10px;
     border: none;
     background-color: #4ade80;
     display: flex;
     justify-content: center;
     align-items: center;
-    border-radius: 10px;
     height:42px;
     padding: 10px;
     color:white;
