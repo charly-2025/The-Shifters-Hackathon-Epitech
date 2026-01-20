@@ -7,6 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
     <link href="style/index.css" rel="stylesheet" />
+    <link rel="stylesheet" href="style/modal.css">
     <title>Economic city</title>
     
 </head>
@@ -37,7 +38,95 @@
             <div class="city">
                 <div class="name-stat-grade">
                     <div class="name-stat">
-                        <div class="name-city">Nantes</div>
+                        <p id="openModal" class="open-btn">
+                            Nantes
+                        </p>
+                            <div id="modalOverlay" class="modal-overlay">
+
+                        <div class="modal">
+
+                        <div class="modal-header">
+                            <h2>Initiatives - Grenoble</h2>
+                            <span id="closeModal" class="close-btn">&times;</span>
+                        </div>
+
+                        <div class="city-info">
+                            <div>
+                            <p class="small">38000 • Auvergne-Rhône-Alpes</p>
+                            <p class="big">160 649 habitants</p>
+                            </div>
+                            <div class="score">
+                            <p>Score global</p>
+                            <span>78/100</span>
+                            </div>
+                        </div>
+
+
+                        <div class="modal-body">
+
+                            <h3>Dernières initiatives écologiques</h3>
+
+                            <div class="initiative">
+                            <div class="initiative-title">
+                                <span class="icon purple">🗑️</span>
+                                <div>
+                                <h4>Déploiement de composteurs de quartier</h4>
+                                <p class="meta">10 janvier 2026 • <span class="tag purple">Déchets</span></p>
+                                </div>
+                            </div>
+
+                            <p class="desc">
+                                Installation de 30 nouveaux sites de compostage collectif dans tous les quartiers.
+                            </p>
+
+                            <div class="impact green">
+                                Impact mesurable<br>
+                                Détournement de 180 tonnes de déchets organiques par an
+                            </div>
+                            </div>
+
+
+                            <div class="initiative">
+                            <div class="initiative-title">
+                                <span class="icon blue">🚲</span>
+                                <div>
+                                <h4>Extension du réseau de pistes cyclables</h4>
+                                <p class="meta">15 décembre 2025 • <span class="tag blue">Mobilité</span></p>
+                                </div>
+                            </div>
+
+                            <p class="desc">
+                                Ajout de 25 km de nouvelles pistes cyclables sécurisées reliant les quartiers périphériques au centre-ville.
+                            </p>
+
+                            <div class="impact green">
+                                Impact mesurable<br>
+                                +8% d’utilisation du vélo pour les trajets domicile-travail
+                            </div>
+                            </div>
+
+                            <div class="initiative">
+                            <div class="initiative-title">
+                                <span class="icon yellow">⚡</span>
+                                <div>
+                                <h4>Installation de panneaux solaires sur les écoles</h4>
+                                <p class="meta">20 novembre 2025 • <span class="tag yellow">Énergie</span></p>
+                                </div>
+                            </div>
+
+                            <p class="desc">
+                                Équipement de 12 écoles primaires avec des panneaux photovoltaïques.
+                            </p>
+
+                            <div class="impact green">
+                                Impact mesurable<br>
+                                320 MWh d’énergie renouvelable produite par an
+                            </div>
+                            </div>
+
+                        </div>
+                        </div>
+                    </div>
                         <div class="stat">
                             <div class="loc">44000 . Pays de la Loire</div>
                             <div class="hab">320 732 hab.</div>
@@ -182,5 +271,6 @@
     </main>
     <footer></footer>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    <script src="modal.js"></script>
 </body>
 </html>
