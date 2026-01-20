@@ -66,7 +66,13 @@ main{
     border:1px #94A3B8 solid;
     align-items: center;
     border-radius: 10px;
-    padding-left: 20px;
+    padding: 20px;
+    gap: 8px;
+}
+
+.search>p{
+    margin: 0;
+    padding: 0;
 }
 
 .container-filter{
@@ -89,7 +95,7 @@ main{
     border-radius: 10px;
 }
 
-.filter-select{
+.filter.active{
     border: none;
     background-color: #4ade80;
     display: flex;
@@ -109,6 +115,8 @@ main{
     border:1px #94A3B8 solid;
     border-radius: 10px;
 }
+
+
 
 .filter-score{
     height: 50px;
@@ -144,7 +152,15 @@ main{
     flex-grow: 0;
     flex-shrink: 0;
     box-sizing: border-box;
+    transition: 
+        box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
+
+.city:hover{
+    box-shadow:0 8px 24px rgba(123, 188, 95, 0.35);
+    transform: translateY(-3px);
 }
 
 
