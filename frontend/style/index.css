@@ -232,7 +232,7 @@ footer{
     align-items: center;
     border-radius: 20px;
     color:#31a75c;
-    background-color:#ded5b6 ;
+    background-color:#E5E7EB ;
     font-weight: bold;
 }
 
@@ -266,6 +266,7 @@ footer{
     border-radius: 12px;
     justify-content: center;
     align-items: center;
+    border: none;
 }
 
 .name>p{
