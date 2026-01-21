@@ -886,7 +886,7 @@ def resolve_city_to_insee(city_or_insee: str) -> dict:
         params={
             "nom": q,
             "fields": "code,nom,codeDepartement,codeRegion,population",
-            "boost": "population",  # prefer the most populated match
+            "boost": "population",
             "limit": 5,
         },
         read_timeout=20,
@@ -897,7 +897,12 @@ def resolve_city_to_insee(city_or_insee: str) -> dict:
         return {"ok": False, "error": f"No commune found for '{q}'"}
 
     best = data[0]
-    return {"ok": True, "insee": best.get("code"), "nom": best.get("nom"), "candidates": data}
+    return {
+        "ok": True,
+        "insee": best.get("code"),
+        "nom": best.get("nom"),
+        "candidates": data,
+    }
 
 
 def ecological_profile(insee: str, energy_year: int, energy_sector: Optional[str] = None) -> dict:
@@ -915,11 +920,13 @@ def ecological_profile(insee: str, energy_year: int, energy_sector: Optional[str
     out["electricity"] = elec
 
     if pop.get("ok") and elec.get("ok") and pop.get("population"):
-        out["kwh_per_inhabitant"] = elec["consumption_kwh"] / float(pop["population"])
+        out["kwh_per_inhabitant"] = (
+            elec["consumption_kwh"] / float(pop["population"])
+        )
     else:
         out["kwh_per_inhabitant"] = None
 
-        # ---------------------------
+    # ---------------------------
     # Green level (best effort)
     # ---------------------------
     try:
@@ -934,40 +941,45 @@ def ecological_profile(insee: str, energy_year: int, energy_sector: Optional[str
             "error": f"Green level failed: {type(e).__name__}: {e}",
         }
 
-
-    # Best-effort ATMO (ne doit pas casser tout le script)
+    # ---------------------------
+    # Air quality (best effort)
+    # ---------------------------
     try:
         out["air_quality_today"] = fetch_air_quality_openaq(insee)
     except Exception as e:
-        out["air_quality_today"] = {"ok": False, "error": f"OpenAQ failed: {type(e).__name__}: {e}"}
+        out["air_quality_today"] = {
+            "ok": False,
+            "error": f"OpenAQ failed: {type(e).__name__}: {e}",
+        }
 
     return out
 
-    
+
+def eco_city(query: str) -> dict:
+    resolved = resolve_city_to_insee(query)
+    if not resolved.get("ok"):
+        return {"ok": False, "error": resolved.get("error")}
+
+    insee = resolved["insee"]
+    year = now_utc().year - 1
+
+    result = ecological_profile(insee, energy_year=year)
+    digest = make_eco_digest(result)
+
+    digest["resolved_from"] = {
+        "query": query,
+        "insee": insee,
+        "name": resolved.get("nom"),
+    }
+
+    return digest
+
 
 # ---------------------------
 # CLI
 # ---------------------------
 
 if __name__ == "__main__":
-    # Now accepts either: "Rennes" OR 35238
     query = sys.argv[1] if len(sys.argv) > 1 else "Rennes"
-    year = int(sys.argv[2]) if len(sys.argv) > 2 else (now_utc().year - 1)
-
-    resolved = resolve_city_to_insee(query)
-    if not resolved.get("ok"):
-        print(json.dumps({"ok": False, "error": resolved.get("error")}, ensure_ascii=False, indent=2))
-        raise SystemExit(2)
-
-    insee = resolved["insee"]
-
-    result = ecological_profile(insee, energy_year=year, energy_sector=None)
-    digest = make_eco_digest(result)
-
-    # Optional: show what was resolved
-    digest["resolved_from"] = {"query": query, "insee": insee, "name": resolved.get("nom")}
-
-    print(json.dumps(digest, ensure_ascii=False, indent=2))
-
-
-
+    output = eco_city(query)
+    print(json.dumps(output, ensure_ascii=False, indent=2))
