@@ -93,7 +93,7 @@ function createGrade(label, score) {
     if( score < 76 && score > 49){
         jaugeRemplie.style.backgroundColor = "#dd891a";
     } else if ( score < 50) {
-        jaugeRemplie.style.backgroundColor = "#dd4d1a";
+        jaugeRemplie.style.backgroundColor = "#ce0b07ff";
     }
 
     jauge.appendChild(jaugeRemplie);
@@ -140,3 +140,110 @@ function add_city(name,dep,hab,sc_global,sc_mob,sc_elec,sc_bio,sc_dech,sc_sob){
 
 
 add_city("luxembourg","35000 . aquitaine",3549400,30,88,46,20,75,83);
+
+const input = document.querySelector(".search-input");
+const suggestionsBox = document.querySelector(".suggestions");
+const addBtn = document.querySelector(".add-city-btn");
+
+let selectedCity = null;
+
+
+
+
+const citiesData = {
+    Rennes: {
+        dep: "35000 · Bretagne",
+        hab: 220488,
+        global: 82,
+        mob: 88,
+        elec: 79,
+        bio: 76,
+        dech: 81,
+        sob: 85
+    },
+    Paris: {
+        dep: "75000 · Île-de-France",
+        hab: 2148327,
+        global: 78,
+        mob: 85,
+        elec: 70,
+        bio: 65,
+        dech: 80,
+        sob: 75
+    },
+    Lyon: {
+        dep: "69000 · Auvergne-Rhône-Alpes",
+        hab: 515695,
+        global: 80,
+        mob: 83,
+        elec: 75,
+        bio: 72,
+        dech: 78,
+        sob: 80
+    }
+};
+
+
+
+input.addEventListener("input", () => {
+    const value = input.value.trim().toLowerCase();
+    suggestionsBox.innerHTML = "";
+    addBtn.style.display = "none";
+    selectedCity = null;
+
+    if (value === "") return;
+
+    Object.keys(citiesData)
+        .filter(city => city.toLowerCase().includes(value))
+        .forEach(city => {
+            const item = document.createElement("div");
+            item.classList.add("suggestion-item");
+            item.innerHTML = `<i class="fas fa-search"></i> ${city}`;
+
+            item.addEventListener("click", () => {
+                input.value = city;
+                selectedCity = city;
+                suggestionsBox.innerHTML = "";
+                addBtn.style.display = "block";
+            });
+
+            suggestionsBox.appendChild(item);
+        });
+});
+
+
+
+document.addEventListener("click", (e) => {
+    if (!e.target.closest(".search-box")) {
+        suggestionsBox.innerHTML = "";
+    }
+});
+
+addBtn.addEventListener("click", () => {
+    if (!selectedCity) return;
+
+    const city = citiesData[selectedCity];
+
+    add_city(
+        selectedCity,
+        city.dep,
+        city.hab,
+        city.global,
+        city.mob,
+        city.elec,
+        city.bio,
+        city.dech,
+        city.sob
+    );
+
+    input.value = "";
+    selectedCity = null;
+    addBtn.style.display = "none";
+});
+
+const resetBtn = document.querySelector(".reset-btn");
+const containerCity = document.querySelector(".container-city");
+
+resetBtn.addEventListener("click", () => {
+    containerCity.innerHTML = "";
+});
