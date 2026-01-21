@@ -5,13 +5,8 @@
   margin: 0;
   border-radius: 8px;
   border: none;
-<<<<<<< HEAD
   background: #1F2A3C;
   color: white;
-=======
-  background:none;
-  color: #E5E7EB;
->>>>>>> 1de90da58020f9d991d2f725a73de23747fe7f15
   cursor: pointer;
   font-size:20px;
 
@@ -30,6 +25,9 @@
 
 
 .modal {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   background: #111827;
   width: 90%;
   max-width: 800px;
