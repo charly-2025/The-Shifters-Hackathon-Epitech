@@ -120,9 +120,7 @@ function createCityGrades(sc_mob, sc_elec, sc_bio, sc_dech, sc_sob) {
     fiveGrades.classList.add("five-grades");
 
     fiveGrades.appendChild(createGrade("Mobilité", sc_mob));
-    fiveGrades.appendChild(createGrade("Energie", sc_elec));
     fiveGrades.appendChild(createGrade("Biodiversité", sc_bio));
-    fiveGrades.appendChild(createGrade("Déchets", sc_dech));
     fiveGrades.appendChild(createGrade("Sobriété", sc_sob));
 
     return fiveGrades;
