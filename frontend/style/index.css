@@ -279,8 +279,18 @@ footer{
 }
 
 
-
-
+.tris{
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 20px;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+    background-color:#1F2A3C;
+    border:1px #94A3B8 solid;
+    border-radius: 10px;
+}
 
 
 
