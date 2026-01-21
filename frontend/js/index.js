@@ -166,7 +166,6 @@ function add_city(name, dep, hab, sc_global, sc_mob, sc_elec, sc_bio, sc_dech, s
 
 
 
-add_city("luxembourg","35000 . aquitaine",3549400,30,88,46,20,75,83);
 
 const input = document.querySelector(".search-input");
 const suggestionsBox = document.querySelector(".suggestions");
