@@ -44,7 +44,6 @@ main{
     flex-direction: column;
     gap:50px;
     align-items: center;
-    justify-content: center;
     
 }
 
@@ -76,7 +75,12 @@ main{
 }
 
 
-
+.loc{
+    max-width: 300px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 
 .container-filter{
     display: flex;
@@ -204,6 +208,7 @@ footer{
     display: flex;
     flex-direction: row;
     justify-content: space-between;
+    height: 60px;
 }
 
 .name-stat{

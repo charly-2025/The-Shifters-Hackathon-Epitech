@@ -1,17 +1,27 @@
 const filterButtons = document.querySelectorAll(".filter");
 console.log(filterButtons);
+let currentFilter = "all";
 
 let select_btn = document.querySelector("#btn-all");
 select_btn.classList.add("filter-active");
 
-filterButtons.forEach( button =>{
-    button.addEventListener("click",()=>{
-        filterButtons.forEach(b => b.classList.remove('filter-active'));
-        button.classList.add('filter-active');
-        select_btn = button;
-    })
-})
+filterButtons.forEach(button => {
+    button.addEventListener("click", () => {
+        filterButtons.forEach(b => b.classList.remove("filter-active"));
+        button.classList.add("filter-active");
 
+        currentFilter = button.id.replace("btn-", "");
+        updateCitiesByFilter(currentFilter);
+    });
+});
+
+
+function applyCurrentFilter() {
+    updateCitiesByFilter(currentFilter);
+}
+function cityAlreadyExists(name) {
+    return !!document.querySelector(`.city[data-city="${name}"]`);
+}
 
 
 function create_city_card(){
@@ -120,23 +130,40 @@ function createCityGrades(sc_mob, sc_elec, sc_bio, sc_dech, sc_sob) {
 }
 
 
-function add_city(name,dep,hab,sc_global,sc_mob,sc_elec,sc_bio,sc_dech,sc_sob){
-    
+function add_city(name, dep, hab, sc_global, sc_mob, sc_elec, sc_bio, sc_dech, sc_sob) {
 
-    city_card = create_city_card();
-    
-    city_card.appendChild(create_city_header(name,dep,hab,sc_global));
-    city_card.appendChild(createCityGrades(sc_mob,sc_elec,sc_bio,sc_dech,sc_sob));
-    
-    compare_button = document.createElement("button");
+    if (cityAlreadyExists(name)) return;
+
+    const city_card = create_city_card();
+    city_card.dataset.city = name;
+
+    city_card.appendChild(create_city_header(name, dep, hab, sc_global));
+
+    let grades;
+    if (currentFilter === "all") {
+        grades = createCityGrades(sc_mob, sc_elec, sc_bio, sc_dech, sc_sob);
+    } else {
+        const { label, key } = filterMap[currentFilter];
+        grades = createCityGradesSingle(label, {
+            mob: sc_mob,
+            elec: sc_elec,
+            bio: sc_bio,
+            dech: sc_dech,
+            sob: sc_sob
+        }[key]);
+    }
+
+    city_card.appendChild(grades);
+
+    const compare_button = document.createElement("button");
     compare_button.classList.add("compare");
     compare_button.textContent = "Sélectionner pour comparer";
 
-    city_card.appendChild(compare_button)
-    
-    document.querySelector(".container-city").appendChild(city_card);
+    city_card.appendChild(compare_button);
 
+    document.querySelector(".container-city").appendChild(city_card);
 }
+
 
 
 add_city("luxembourg","35000 . aquitaine",3549400,30,88,46,20,75,83);
@@ -182,6 +209,30 @@ const citiesData = {
         sob: 80
     }
 };
+
+const filterMap = {
+    all: null,
+    mobil: { label: "Mobilité", key: "mob" },
+    ene: { label: "Energie", key: "elec" },
+    bio: { label: "Biodiversité", key: "bio" },
+    dec: { label: "Déchets", key: "dech" },
+    sob: { label: "Sobriété", key: "sob" }
+};
+
+function createCityGradesSingle(label, score) {
+    const fiveGrades = document.createElement("div");
+    fiveGrades.classList.add("five-grades");
+
+    fiveGrades.appendChild(createGrade(label, score));
+
+    const dataDiv = document.createElement("div");
+    dataDiv.classList.add("category-data");
+    dataDiv.textContent = "Données détaillées à venir";
+
+    fiveGrades.appendChild(dataDiv);
+
+    return fiveGrades;
+}
 
 
 
@@ -247,3 +298,28 @@ const containerCity = document.querySelector(".container-city");
 resetBtn.addEventListener("click", () => {
     containerCity.innerHTML = "";
 });
+
+function updateCitiesByFilter(filterKey) {
+    document.querySelectorAll(".city").forEach(cityCard => {
+        const cityName = cityCard.dataset.city;
+        const city = citiesData[cityName];
+
+        const oldGrades = cityCard.querySelector(".five-grades");
+        let newGrades;
+
+        if (filterKey === "all") {
+            newGrades = createCityGrades(
+                city.mob,
+                city.elec,
+                city.bio,
+                city.dech,
+                city.sob
+            );
+        } else {
+            const { label, key } = filterMap[filterKey];
+            newGrades = createCityGradesSingle(label, city[key]);
+        }
+
+        oldGrades.replaceWith(newGrades);
+    });
+}
