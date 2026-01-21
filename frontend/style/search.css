@@ -98,11 +98,14 @@
     color: #1F2A3C;
 }
 .filter-panel {
-    background: #1F2A3C;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 20px;
     padding: 12px;
     border-radius: 10px;
     margin-top: 10px;
-    width: 1000px;
+    width: 500px;
     color: #cfcfcf;
 }
 

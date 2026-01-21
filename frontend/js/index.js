@@ -222,6 +222,7 @@ function createCityGradesSingle(label, score) {
     const dataDiv = document.createElement("div");
     dataDiv.classList.add("category-data");
     dataDiv.textContent = "Données détaillées à venir";
+    dataDiv.style.color = "white";
 
     fiveGrades.appendChild(dataDiv);
 
@@ -318,10 +319,8 @@ const populationInput = document.getElementById("populationInput");
 const scoreRange = document.getElementById("scoreRange");
 const scoreInput = document.getElementById("scoreInput");
 
-// Récupération des villes déjà affichées
 const cityElements = document.querySelectorAll(".city");
 
-// Extraction des valeurs depuis le DOM
 const cities = Array.from(cityElements).map(city => {
     const habitantsText = city.querySelector(".hab")?.textContent || "0";
     const habitants = Number(habitantsText.replace(/\D/g, ""));
@@ -332,7 +331,6 @@ const cities = Array.from(cityElements).map(city => {
     return { element: city, habitants, score };
 });
 
-// Limites dynamiques population
 const maxPopulation = Math.max(...cities.map(c => c.habitants));
 
 populationRange.min = 0;
@@ -343,11 +341,9 @@ populationInput.min = 0;
 populationInput.max = maxPopulation;
 populationInput.value = maxPopulation;
 
-// Score
 scoreRange.value = 0;
 scoreInput.value = 0;
 
-// Fonction de filtre
 function filterCities() {
     const popMax = Number(populationRange.value);
     const scoreMin = Number(scoreRange.value);
@@ -361,7 +357,6 @@ function filterCities() {
     });
 }
 
-// Sync slider → input
 populationRange.addEventListener("input", () => {
     populationInput.value = populationRange.value;
     filterCities();
@@ -372,7 +367,6 @@ scoreRange.addEventListener("input", () => {
     filterCities();
 });
 
-// Sync input → slider
 populationInput.addEventListener("input", () => {
     let v = Number(populationInput.value);
     if (v < 0) v = 0;
