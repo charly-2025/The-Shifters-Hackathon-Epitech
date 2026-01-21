@@ -75,6 +75,9 @@ main{
     padding: 0;
 }
 
+
+
+
 .container-filter{
     display: flex;
     flex-direction: row;
@@ -90,10 +93,17 @@ main{
     justify-content: center;
     align-items: center;
     background-color: #1F2A3C;
-    color: #94A3B8;
+    color:#E5E7EB;
     border:1px #94A3B8 solid;
     border-radius: 10px;
+    gap:5px;
 }
+
+.filter>p{
+    padding: 0;
+    margin: 0;
+}
+
 
 .filter-active{
     border-radius: 10px;
