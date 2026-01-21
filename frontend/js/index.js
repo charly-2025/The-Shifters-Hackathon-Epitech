@@ -131,7 +131,6 @@ function createCityGrades(sc_mob, sc_elec, sc_bio, sc_dech, sc_sob) {
 
 
 function add_city(name, dep, hab, sc_global, sc_mob, sc_elec, sc_bio, sc_dech, sc_sob) {
-
     if (cityAlreadyExists(name)) return;
 
     const city_card = create_city_card();
@@ -139,18 +138,14 @@ function add_city(name, dep, hab, sc_global, sc_mob, sc_elec, sc_bio, sc_dech, s
 
     city_card.appendChild(create_city_header(name, dep, hab, sc_global));
 
+    const cityScores = { mob: sc_mob, elec: sc_elec, bio: sc_bio, dech: sc_dech, sob: sc_sob };
+
     let grades;
     if (currentFilter === "all") {
         grades = createCityGrades(sc_mob, sc_elec, sc_bio, sc_dech, sc_sob);
     } else {
         const { label, key } = filterMap[currentFilter];
-        grades = createCityGradesSingle(label, {
-            mob: sc_mob,
-            elec: sc_elec,
-            bio: sc_bio,
-            dech: sc_dech,
-            sob: sc_sob
-        }[key]);
+        grades = createCityGradesSingle(label, cityScores[key]);
     }
 
     city_card.appendChild(grades);
@@ -158,11 +153,11 @@ function add_city(name, dep, hab, sc_global, sc_mob, sc_elec, sc_bio, sc_dech, s
     const compare_button = document.createElement("button");
     compare_button.classList.add("compare");
     compare_button.textContent = "Sélectionner pour comparer";
-
     city_card.appendChild(compare_button);
 
     document.querySelector(".container-city").appendChild(city_card);
 }
+
 
 
 
@@ -304,16 +299,10 @@ function updateCitiesByFilter(filterKey) {
         const city = citiesData[cityName];
 
         const oldGrades = cityCard.querySelector(".five-grades");
-        let newGrades;
 
+        let newGrades;
         if (filterKey === "all") {
-            newGrades = createCityGrades(
-                city.mob,
-                city.elec,
-                city.bio,
-                city.dech,
-                city.sob
-            );
+            newGrades = createCityGrades(city.mob, city.elec, city.bio, city.dech, city.sob);
         } else {
             const { label, key } = filterMap[filterKey];
             newGrades = createCityGradesSingle(label, city[key]);
@@ -322,3 +311,4 @@ function updateCitiesByFilter(filterKey) {
         oldGrades.replaceWith(newGrades);
     });
 }
+
