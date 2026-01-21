@@ -235,10 +235,11 @@ input.addEventListener("input", () => {
     addBtn.style.display = "none";
     selectedCity = null;
 
-    if (value === "") return;
+    if (value.length < 2) return;
 
-    Object.keys(citiesData)
+    citySuggestions
         .filter(city => city.toLowerCase().includes(value))
+        .slice(0, 10)
         .forEach(city => {
             const item = document.createElement("div");
             item.classList.add("suggestion-item");
@@ -257,33 +258,42 @@ input.addEventListener("input", () => {
 
 
 
+
 document.addEventListener("click", (e) => {
     if (!e.target.closest(".search-box")) {
         suggestionsBox.innerHTML = "";
     }
 });
 
-addBtn.addEventListener("click", () => {
+addBtn.addEventListener("click", async () => {
     if (!selectedCity) return;
 
-    const city = citiesData[selectedCity];
+    try {
+        const data = await fetchEcoCity(selectedCity);
+        const city = mapBackendCityToFrontend(data);
 
-    add_city(
-        selectedCity,
-        city.dep,
-        city.hab,
-        city.global,
-        city.mob,
-        city.elec,
-        city.bio,
-        city.dech,
-        city.sob
-    );
+        add_city(
+            city.name,
+            city.dep,
+            city.hab,
+            city.global,
+            city.mob,
+            city.elec,
+            city.bio,
+            city.dech,
+            city.sob
+        );
+
+    } catch (err) {
+        console.error(err);
+        alert("Impossible de récupérer les données de la ville");
+    }
 
     input.value = "";
     selectedCity = null;
     addBtn.style.display = "none";
 });
+
 
 const resetBtn = document.querySelector(".reset-btn");
 const containerCity = document.querySelector(".container-city");
@@ -382,3 +392,158 @@ scoreInput.addEventListener("input", () => {
     scoreRange.value = v;
     filterCities();
 });
+
+
+async function fetchEcoCity(city) {
+    const response = await fetch(
+        `http://127.0.0.1:8000/eco?city=${encodeURIComponent(city)}`
+    );
+
+    if (!response.ok) {
+        throw new Error("Erreur serveur");
+    }
+
+    return await response.json();
+}
+
+function scoreElectricity(kwhPerHab) {
+    if (!kwhPerHab) return null;
+
+    if (kwhPerHab < 2500) return 90;
+    if (kwhPerHab < 3500) return 75;
+    if (kwhPerHab < 4500) return 60;
+    return 40;
+}
+
+
+function scoreBiodiversity(greenSurface) {
+    if (!greenSurface) return null;
+
+    if (greenSurface > 40) return 90;
+    if (greenSurface > 30) return 75;
+    if (greenSurface > 20) return 60;
+    return 40;
+}
+
+function scoreAirQuality(no2) {
+    if (!no2) return null;
+
+    if (no2 < 10) return 90;
+    if (no2 < 20) return 75;
+    if (no2 < 30) return 60;
+    return 40;
+}
+
+function averageScore(scores) {
+    const validScores = scores.filter(s => typeof s === "number");
+
+    if (validScores.length === 0) return null;
+
+    const sum = validScores.reduce((a, b) => a + b, 0);
+    return Math.round(sum / validScores.length);
+}
+
+function mapBackendCityToFrontend(data) {
+    const elecScore = scoreElectricity(data.kwh_per_inhabitant);
+    const bioScore = scoreBiodiversity(data.green_surface); // si dispo plus tard
+    const sobScore = scoreAirQuality(data.air_quality?.pollutants?.no2?.value);
+
+    const globalScore = averageScore([
+        elecScore,
+        bioScore,
+        sobScore
+    ]);
+
+    return {
+        name: data.commune.name,
+        dep: `${data.commune.departement} · ${data.commune.region}`,
+        hab: data.population?.value ?? 0,
+
+        global: globalScore ?? 0,
+        elec: elecScore ?? 0,
+        bio: bioScore ?? 0,
+        sob: sobScore ?? 0,
+
+        mob: null,
+        dech: null
+    };
+}
+
+const citySuggestions = [
+  "Paris",
+  "Marseille",
+  "Lyon",
+  "Toulouse",
+  "Nice",
+  "Nantes",
+  "Montpellier",
+  "Strasbourg",
+  "Bordeaux",
+  "Lille",
+
+  "Rennes",
+  "Reims",
+  "Le Havre",
+  "Saint-Étienne",
+  "Toulon",
+  "Grenoble",
+  "Dijon",
+  "Angers",
+  "Nîmes",
+  "Villeurbanne",
+
+  "Clermont-Ferrand",
+  "Le Mans",
+  "Aix-en-Provence",
+  "Brest",
+  "Tours",
+  "Amiens",
+  "Limoges",
+  "Annecy",
+  "Perpignan",
+  "Boulogne-Billancourt",
+
+  "Metz",
+  "Besançon",
+  "Orléans",
+  "Rouen",
+  "Mulhouse",
+  "Caen",
+  "Nancy",
+  "Saint-Denis",
+  "Argenteuil",
+  "Montreuil",
+
+  "Roubaix",
+  "Tourcoing",
+  "Avignon",
+  "Poitiers",
+  "La Rochelle",
+  "Chambéry",
+  "Bayonne",
+  "Angoulême",
+  "Brive-la-Gaillarde",
+  "Colmar",
+
+  "Évry",
+  "Cergy",
+  "Pau",
+  "Tarbes",
+  "Albi",
+  "Castres",
+  "Montauban",
+  "Cahors",
+  "Rodez",
+  "Millau",
+
+  "Narbonne",
+  "Carcassonne",
+  "Sète",
+  "Agde",
+  "Béziers",
+  "Arles",
+  "Salon-de-Provence",
+  "Martigues",
+  "Hyères",
+  "Draguignan"
+];
