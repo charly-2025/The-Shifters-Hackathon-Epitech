@@ -247,3 +247,82 @@ const containerCity = document.querySelector(".container-city");
 resetBtn.addEventListener("click", () => {
     containerCity.innerHTML = "";
 });
+
+const populationRange = document.getElementById("populationRange");
+const populationInput = document.getElementById("populationInput");
+
+const scoreRange = document.getElementById("scoreRange");
+const scoreInput = document.getElementById("scoreInput");
+
+// Récupération des villes déjà affichées
+const cityElements = document.querySelectorAll(".city");
+
+// Extraction des valeurs depuis le DOM
+const cities = Array.from(cityElements).map(city => {
+    const habitantsText = city.querySelector(".hab")?.textContent || "0";
+    const habitants = Number(habitantsText.replace(/\D/g, ""));
+
+    const scoreText = city.querySelector(".global")?.textContent || "0";
+    const score = Number(scoreText.split("/")[0]);
+
+    return { element: city, habitants, score };
+});
+
+// Limites dynamiques population
+const maxPopulation = Math.max(...cities.map(c => c.habitants));
+
+populationRange.min = 0;
+populationRange.max = maxPopulation;
+populationRange.value = maxPopulation;
+
+populationInput.min = 0;
+populationInput.max = maxPopulation;
+populationInput.value = maxPopulation;
+
+// Score
+scoreRange.value = 0;
+scoreInput.value = 0;
+
+// Fonction de filtre
+function filterCities() {
+    const popMax = Number(populationRange.value);
+    const scoreMin = Number(scoreRange.value);
+
+    cities.forEach(city => {
+        const show =
+            city.habitants <= popMax &&
+            city.score >= scoreMin;
+
+        city.element.style.display = show ? "block" : "none";
+    });
+}
+
+// Sync slider → input
+populationRange.addEventListener("input", () => {
+    populationInput.value = populationRange.value;
+    filterCities();
+});
+
+scoreRange.addEventListener("input", () => {
+    scoreInput.value = scoreRange.value;
+    filterCities();
+});
+
+// Sync input → slider
+populationInput.addEventListener("input", () => {
+    let v = Number(populationInput.value);
+    if (v < 0) v = 0;
+    if (v > maxPopulation) v = maxPopulation;
+
+    populationRange.value = v;
+    filterCities();
+});
+
+scoreInput.addEventListener("input", () => {
+    let v = Number(scoreInput.value);
+    if (v < 0) v = 0;
+    if (v > 100) v = 100;
+
+    scoreRange.value = v;
+    filterCities();
+});

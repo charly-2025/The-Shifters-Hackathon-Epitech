@@ -42,12 +42,23 @@
                 <button class="filter" id="btn-dec"><i class="bi bi-trash"></i><p>Déchets</p></button>
                 <button class="filter" id="btn-sob"><i class="bi bi-droplet"></i><p>Sobriété</p></button>
             </div>
-            <div class="filter-pop">
-                Population 
+        </div>
+        <div class="filter-panel">
+            <label>Population max</label>
+            <div class="filter-input">
+                <input type="number" id="populationInput">
+                <span>hab</span>
             </div>
-            <div class="filter-score">
-                Global
+            <input type="range" id="populationRange">
+        </div>
+
+        <div class="filter-panel">
+            <label>Score global min</label>
+            <div class="filter-input">
+                <input type="number" id="scoreInput" min="0" max="100">
+                <span>/100</span>
             </div>
+            <input type="range" id="scoreRange" min="0" max="100">
         </div>
 
         <div class="container-city">
