@@ -390,10 +390,11 @@ scoreRange.addEventListener("input", () => {
     filterCities();
 });
 
+// Sync input → slider
 populationInput.addEventListener("input", () => {
     let v = Number(populationInput.value);
     if (v < 0) v = 0;
-    if (v > maxPopulation) v = maxPopulation;
+    if (v > populationRange.max) v = populationRange.max;
 
     populationRange.value = v;
     filterCities();
@@ -407,6 +408,24 @@ scoreInput.addEventListener("input", () => {
     scoreRange.value = v;
     filterCities();
 });
+
+const cityContainer = document.querySelector(".container-city");
+
+if (cityContainer) {
+    const observer = new MutationObserver(() => {
+        collectCitiesFromDOM();
+    });
+
+    observer.observe(cityContainer, {
+        childList: true,
+        subtree: false
+    });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    collectCitiesFromDOM();
+});
+
 
 
 async function fetchEcoCity(city) {
