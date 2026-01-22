@@ -6,6 +6,19 @@ body,html{
     font-family: Arial, Helvetica, sans-serif;
 }
 
+.hidden{
+    display: none !important;
+}
+
+#controls{
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    height: auto;
+
+}
+
 header{
     background-color:#1F2A3C;
     border-bottom:1px #94A3B8 solid;
@@ -162,7 +175,7 @@ main{
     display: flex;
     flex-direction: column;
     padding: 15px;
-    gap: 20px;
+    gap: 14px;
     flex-grow: 0;
     flex-shrink: 0;
     box-sizing: border-box;
@@ -209,6 +222,7 @@ footer{
     flex-direction: row;
     justify-content: space-between;
     height: 60px;
+    height: auto;
 }
 
 .name-stat{
@@ -241,10 +255,18 @@ footer{
     font-weight: bold;
 }
 
+.city p,
+.grade,
+.five-grades {
+  margin: 0;
+
+}
+
+
 .five-grades{
     display: flex;
     flex-direction: column;
-    gap:30px
+    gap:12px
 }
 
 .grade{
@@ -321,6 +343,28 @@ footer{
   animation: spin 0.8s linear infinite;
   margin-bottom: 15px;
 }
+.compare-bar {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: white;
+    padding: 12px 18px;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,.2);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 2000;
+}
+
+.compare-bar.hidden {
+    display: none;
+}
+
+.compare-selected {
+    outline: 3px solid #1F2A3C;
+}
+
 
 @keyframes spin {
   to {

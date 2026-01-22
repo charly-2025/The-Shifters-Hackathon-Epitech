@@ -1,3 +1,16 @@
+const controls = document.getElementById("controls");
+
+function updateControlsVisibility() {
+  if (!controls) return;
+
+  if (citiesStore.size === 0) {
+    controls.classList.add("hidden");
+  } else {
+    controls.classList.remove("hidden");
+  }
+}
+
+
 const filterButtons = document.querySelectorAll(".filter");
 console.log(filterButtons);
 let currentFilter = "all";
@@ -90,6 +103,7 @@ function create_city_header(name,dep,hab,sc_global){
 
 
 function createGrade(label, score) {
+    if (typeof score !== "number") score = 0;
     const grade = document.createElement("div");
     grade.classList.add("grade");
 
@@ -127,17 +141,17 @@ function createGrade(label, score) {
 }
 
 
-function createCityGrades(sc_mob, sc_elec, sc_bio, sc_dech, sc_sob) {
-    const fiveGrades = document.createElement("div");
-    fiveGrades.classList.add("five-grades");
+function createCityGrades(scores) {
+  const fiveGrades = document.createElement("div");
+  fiveGrades.classList.add("five-grades");
 
-    fiveGrades.appendChild(createGrade("Electricité", sc_elec));
-    fiveGrades.appendChild(createGrade("Biodiversité", sc_bio));
-    fiveGrades.appendChild(createGrade("Sobriété", sc_sob));
+  fiveGrades.appendChild(createGrade("Electricité", scores.elec));
+  fiveGrades.appendChild(createGrade("Biodiversité", scores.bio));
+  fiveGrades.appendChild(createGrade("Sobriété", scores.sob));
 
-    return fiveGrades;
-
+  return fiveGrades;
 }
+
 
 
 function add_city(name, dep, hab, sc_global, sc_mob, sc_elec, sc_bio, sc_dech, sc_sob) {
@@ -159,15 +173,22 @@ function add_city(name, dep, hab, sc_global, sc_mob, sc_elec, sc_bio, sc_dech, s
 
   city_card.appendChild(create_city_header(name, dep, hab, sc_global));
 
-  const cityScores = { mob: sc_mob, elec: sc_elec, bio: sc_bio, dech: sc_dech, sob: sc_sob };
+const cityScores = {
+  mob: sc_mob,
+  elec: sc_elec,
+  bio: sc_bio,
+  dech: sc_dech,
+  sob: sc_sob
+};
 
-  let grades;
-  if (currentFilter === "all") {
-    grades = createCityGrades(sc_mob, sc_elec, sc_bio, sc_dech, sc_sob);
-  } else {
-    const { label, key } = filterMap[currentFilter];
-    grades = createCityGradesSingle(label, cityScores[key]);
-  }
+let grades;
+if (currentFilter === "all") {
+  grades = createCityGrades(cityScores);
+} else {
+  const { label, key } = filterMap[currentFilter];
+  grades = createCityGradesSingle(label, cityScores[key]);
+}
+
 
   city_card.appendChild(grades);
 
@@ -179,6 +200,8 @@ function add_city(name, dep, hab, sc_global, sc_mob, sc_elec, sc_bio, sc_dech, s
   document.querySelector(".container-city").appendChild(city_card);
 
   updateSliders(); 
+  updateControlsVisibility();
+
 }
 
 function updateSliders() {
@@ -324,6 +347,8 @@ const containerCity = document.querySelector(".container-city");
 resetBtn.addEventListener("click", () => {
   containerCity.innerHTML = "";
   citiesStore.clear();
+updateControlsVisibility();
+
 });
 
 
@@ -337,13 +362,13 @@ function updateCitiesByFilter(filterKey) {
 
     let newGrades;
     if (filterKey === "all") {
-      newGrades = createCityGrades(
-        city.mob,
-        city.elec,
-        city.bio,
-        city.dech,
-        city.sob
-      );
+      newGrades = createCityGrades({
+        mob: city.mob,
+        elec: city.elec,
+        bio: city.bio,
+        dech: city.dech,
+        sob: city.sob
+        });
     } else {
       const { label, key } = filterMap[filterKey];
       newGrades = createCityGradesSingle(label, city[key]);
@@ -446,7 +471,7 @@ function scoreElectricity(kwhPerHab) {
     if (kwhPerHab < 2500) return 90;
     if (kwhPerHab < 3500) return 75;
     if (kwhPerHab < 4500) return 60;
-    return 40;Pairs
+    return 40;
 }
 
 
@@ -481,11 +506,12 @@ function mapBackendCityToFrontend(data) {
   const depCode = String(data.commune.departement).padStart(2, "0");
   const depName = departements[depCode] ?? "Département inconnu";
 
-  const elecScore = scoreElectricity(data.kwh_per_inhabitant);
-  const bioScore = scoreBiodiversity(data.green_level?.green_share_pct);
-  const sobScore = scoreAirQuality(
-    data.air_quality?.pollutants?.no2?.value
-  );
+const elecScore = Number(scoreElectricity(data.kwh_per_inhabitant));
+const bioScore = Number(scoreBiodiversity(data.green_level?.green_share_pct));
+const sobScore = Number(
+  scoreAirQuality(data.air_quality?.pollutants?.no2?.value)
+);
+
 
   const globalScore = averageScore([
     elecScore,
@@ -702,3 +728,224 @@ const departements = {
   "974": "La Réunion",
   "976": "Mayotte"
 };
+
+document.addEventListener("DOMContentLoaded", () => {
+  updateControlsVisibility();
+});
+
+let selectedCities = [];
+
+const compareBar = document.getElementById("compareBar");
+const compareCount = document.getElementById("compareCount");
+const launchCompareBtn = document.getElementById("launchCompare");
+
+
+function bindCompareButtons() {
+    const buttons = document.querySelectorAll(".compare");
+
+    buttons.forEach(btn => {
+        if (btn.dataset.bound) return;
+
+        btn.dataset.bound = "true";
+
+        btn.addEventListener("click", () => {
+            const city = btn.closest(".city");
+            toggleCitySelection(city, btn);
+        });
+    });
+}
+
+function toggleCitySelection(city, btn) {
+
+    const index = selectedCities.indexOf(city);
+
+
+    if (index !== -1) {
+        selectedCities.splice(index, 1);
+        city.classList.remove("compare-selected");
+        btn.textContent = "Sélectionner pour comparer";
+    } 
+    
+    else {
+
+        if (selectedCities.length >= 3) {
+            alert("Maximum 3 villes peuvent être comparées.");
+            return;
+        }
+
+        selectedCities.push(city);
+        city.classList.add("compare-selected");
+        btn.textContent = "Retirer";
+    }
+
+    updateCompareBar();
+}
+
+
+function updateCompareBar() {
+
+    if (selectedCities.length === 0) {
+        compareBar.classList.add("hidden");
+        return;
+    }
+
+    compareBar.classList.remove("hidden");
+    compareCount.textContent =
+        `${selectedCities.length} ville${selectedCities.length > 1 ? "s" : ""} sélectionnée${selectedCities.length > 1 ? "s" : ""}`;
+}
+
+
+launchCompareBtn.addEventListener("click", () => {
+
+    if (selectedCities.length < 2) {
+        alert("Sélectionne au moins 2 villes pour comparer.");
+        return;
+    }
+
+    const names = selectedCities.map(city =>
+        city.querySelector(".name-stat p")?.textContent.trim()
+    );
+
+    console.log("Comparaison :", names);
+
+    alert("Comparaison lancée :\n" + names.join(" vs "));
+});
+
+
+const cityContainerForCompare = document.querySelector(".container-city");
+
+if (cityContainerForCompare) {
+
+    const observerCompare = new MutationObserver(() => {
+        bindCompareButtons();
+    });
+
+    observerCompare.observe(cityContainerForCompare, {
+        childList: true,
+        subtree: false
+    });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    bindCompareButtons();
+});
+
+
+
+const compareModalOverlay = document.getElementById("compareModalOverlay");
+const compareContent = document.getElementById("compareContent");
+const closeCompareModal = document.getElementById("closeCompareModal");
+
+
+function extractCityData(cityEl) {
+
+    const name =
+        cityEl.querySelector(".name-stat p")?.textContent.trim();
+
+    const global =
+        Number(cityEl.querySelector(".global")?.textContent.split("/")[0]);
+
+    const habitants =
+        cityEl.querySelector(".hab")?.textContent;
+
+    const categories = {};
+
+    cityEl.querySelectorAll(".five-grades .grade").forEach(grade => {
+        const catName =
+            grade.querySelector(".name p")?.textContent.trim();
+
+        const value =
+            Number(
+                grade
+                    .querySelector(".name p:last-child")
+                    ?.textContent.split("/")[0]
+            );
+
+        categories[catName] = value;
+    });
+
+    return { name, global, habitants, categories };
+}
+
+// Ouvre la modal
+function openCompareModal() {
+
+    const citiesData = selectedCities.map(city =>
+        extractCityData(city)
+    );
+
+    buildCompareModal(citiesData);
+
+    compareModalOverlay.classList.remove("hidden");
+}
+
+
+function buildCompareModal(data) {
+
+    compareContent.innerHTML = "";
+
+    const allCats = Object.keys(data[0].categories);
+
+    const bestByCat = {};
+
+    allCats.forEach(cat => {
+        bestByCat[cat] = Math.max(...data.map(c => c.categories[cat]));
+    });
+
+    const bestGlobal = Math.max(...data.map(c => c.global));
+
+    data.forEach(city => {
+
+        const div = document.createElement("div");
+        div.className = "compare-city";
+
+        if (city.global === bestGlobal) {
+            div.classList.add("best");
+        }
+
+        let catsHTML = "";
+
+        allCats.forEach(cat => {
+
+            const val = city.categories[cat];
+            const best = val === bestByCat[cat];
+
+            catsHTML += `
+                <div class="compare-cat ${best ? "best" : ""}">
+                    <span>${cat}</span>
+                    <strong>${val}/100</strong>
+                </div>
+            `;
+        });
+
+        div.innerHTML = `
+            <h3>${city.name}</h3>
+            <div class="compare-score-global">⭐ ${city.global}/100</div>
+            <p>👥 ${city.habitants}</p>
+            ${catsHTML}
+        `;
+
+        compareContent.appendChild(div);
+    });
+}
+
+launchCompareBtn.addEventListener("click", () => {
+
+    if (selectedCities.length < 2) {
+        alert("Sélectionne au moins 2 villes.");
+        return;
+    }
+
+    openCompareModal();
+});
+
+
+closeCompareModal.addEventListener("click", () => {
+    compareModalOverlay.classList.add("hidden");
+});
+
+compareModalOverlay.addEventListener("click", e => {
+    if (e.target === compareModalOverlay) {
+        compareModalOverlay.classList.add("hidden");
+    }
+});
