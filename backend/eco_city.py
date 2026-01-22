@@ -155,15 +155,10 @@ def fetch_air_quality(insee: str, commune_meta: dict) -> dict:
     }
 
 
-def compute_green_level(insee: str, population: int, simplify: float = 0.001) -> dict:
-    """
-    SLOW function (30-180s for large cities).
-    Args:
-        simplify: Higher = faster but less precise (0.001 = good balance)
-    """
+def compute_green_level(insee: str, population: int) -> dict:
     try:
-        from shapely.geometry import shape, Polygon, MultiPolygon
-        from shapely.ops import transform, unary_union
+        from shapely.geometry import shape, Polygon, MultiPolygon, LinearRing
+        from shapely.ops import transform
         from pyproj import Transformer
     except ImportError:
         return {"ok": False, "error": "pip install shapely pyproj"}
@@ -173,27 +168,25 @@ def compute_green_level(insee: str, population: int, simplify: float = 0.001) ->
     geojson = requests.get(url, timeout=30).json()
     geom = shape(geojson["geometry"])
     
-    # Simplify geometry to speed up Overpass
-    if isinstance(geom, MultiPolygon):
-        poly = max(geom.geoms, key=lambda g: g.area)
-    else:
-        poly = geom
-    
-    poly = poly.simplify(simplify, preserve_topology=True)
-    
     # Calculate commune area in km²
     to_l93 = Transformer.from_crs("EPSG:4326", "EPSG:2154", always_xy=True)
     geom_l93 = transform(to_l93.transform, geom)
     commune_area_km2 = geom_l93.area / 1e6
     
+    # Get green areas from Overpass
+    if isinstance(geom, MultiPolygon):
+        poly = max(geom.geoms, key=lambda g: g.area)
+    else:
+        poly = geom
+    
     coords = " ".join([f"{lat:.6f} {lon:.6f}" for lon, lat in poly.exterior.coords])
     
-    # Reduced query (only main green types)
     query = f"""
-[out:json][timeout:120];
+[out:json][timeout:180];
 (
   way["leisure"="park"](poly:"{coords}");
   way["landuse"="forest"](poly:"{coords}");
+  way["landuse"="grass"](poly:"{coords}");
   way["natural"="wood"](poly:"{coords}");
 );
 out geom;
@@ -202,10 +195,10 @@ out geom;
     osm = requests.post(
         "https://overpass-api.de/api/interpreter",
         data={"data": query},
-        timeout=150,
+        timeout=200,
     ).json()
     
-    # Calculate green area (optimized with unary_union)
+    # Calculate green area
     green_polys = []
     for el in osm.get("elements", []):
         coords_list = [(p["lon"], p["lat"]) for p in el.get("geometry", [])]
@@ -220,8 +213,9 @@ out geom;
     if not green_polys:
         green_area_km2 = 0.0
     else:
-        # Use unary_union (faster than manual loop)
-        union = unary_union(green_polys)
+        union = green_polys[0]
+        for p in green_polys[1:]:
+            union = union.union(p)
         clipped = union.intersection(geom)
         clipped_l93 = transform(to_l93.transform, clipped)
         green_area_km2 = clipped_l93.area / 1e6
@@ -325,12 +319,6 @@ def eco_city(query: str, skip_slow: bool = False) -> dict:
 # ---------------------------
 
 if __name__ == "__main__":
-    import argparse
-    
-    parser = argparse.ArgumentParser(description="Eco-city profiler")
-    parser.add_argument("city", nargs="?", default="Rennes", help="City name or INSEE code")
-    parser.add_argument("--fast", action="store_true", help="Skip slow computations (green level)")
-    args = parser.parse_args()
-    
-    output = eco_city(args.city, skip_slow=args.fast)
+    query = sys.argv[1] if len(sys.argv) > 1 else "Rennes"
+    output = eco_city(query)
     print(json.dumps(output, ensure_ascii=False, indent=2))
