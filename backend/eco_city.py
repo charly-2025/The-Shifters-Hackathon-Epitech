@@ -7,8 +7,6 @@ from typing import Optional
 
 UTC = dt.timezone.utc
 
-# HTTP
-
 def _get_json(url: str, params: dict = None, timeout: int = 30) -> dict:
     headers = {
         "User-Agent": "eco-city-script/1.0",
@@ -18,11 +16,6 @@ def _get_json(url: str, params: dict = None, timeout: int = 30) -> dict:
     r = requests.get(url, params=params, headers=headers, timeout=(10, timeout))
     r.raise_for_status()
     return r.json()
-
-
-
-# functions
-
 
 def fetch_commune_meta(insee: str) -> dict:
     url = f"https://geo.api.gouv.fr/communes/{insee}"
@@ -39,7 +32,6 @@ def fetch_commune_meta(insee: str) -> dict:
 
 
 def fetch_population(insee: str) -> dict:
-    # Hardcoded for PLM communes (Paris/Lyon/Marseille)
     PLM = {
         "75056": {"population": 2165423, "year": 2022, "name": "Paris"},
         "69123": {"population": 522250, "year": 2022, "name": "Lyon"},
@@ -50,7 +42,6 @@ def fetch_population(insee: str) -> dict:
         p = PLM[insee]
         return {"ok": True, "population": p["population"], "year": p["year"]}
     
-    # Dynamic lookup for other communes
     url = "https://public.opendatasoft.com/api/records/1.0/search/"
     dataset = "demographyref-france-pop-legale-commune-arrondissement-municipal-millesime"
     
@@ -60,7 +51,7 @@ def fetch_population(insee: str) -> dict:
     if not records:
         return {"ok": False, "error": "No population data"}
     
-    # Take most recent
+    
     chosen = max(records, key=lambda r: int(r["fields"].get("geo_year", 0)))
     
     return {
@@ -75,7 +66,6 @@ def fetch_electricity(insee: str) -> dict:
     dataset = "consommation-electrique-par-secteur-dactivite-commune"
     url = f"{base}/{dataset}/records"
     
-    # Get latest year available
     where = f"code_commune = '{insee}'"
     latest = _get_json(url, {"where": where, "select": "annee", "order_by": "annee desc", "limit": 1})
     
@@ -84,7 +74,7 @@ def fetch_electricity(insee: str) -> dict:
     
     year = latest["results"][0]["annee"]
     
-    # Get all records for that year
+    
     data = _get_json(url, {"where": f"{where} AND annee = {year}", "limit": 100})
     
     total_mwh = sum(float(r.get("conso_totale_mwh", 0)) for r in data.get("results", []))
@@ -109,7 +99,7 @@ def fetch_air_quality(insee: str, commune_meta: dict) -> dict:
     lon, lat = centre[0], centre[1]
     headers = {"X-API-Key": api_key, "Accept": "application/json"}
     
-    # Get nearest location
+    
     locs = requests.get(
         "https://api.openaq.org/v3/locations",
         params={"coordinates": f"{lat:.4f},{lon:.4f}", "radius": 25000, "limit": 1},
@@ -124,7 +114,7 @@ def fetch_air_quality(insee: str, commune_meta: dict) -> dict:
     location = results[0]
     location_id = location.get("id")
     
-    # Get sensors data
+    
     sensors = requests.get(
         f"https://api.openaq.org/v3/locations/{location_id}/sensors",
         params={"limit": 200},
@@ -132,7 +122,7 @@ def fetch_air_quality(insee: str, commune_meta: dict) -> dict:
         timeout=30,
     ).json()
     
-    # Extract pollutants (PM2.5, PM10, NO2, O3, SO2, CO)
+   
     pollutants = {}
     for s in sensors.get("results", []):
         param = s.get("parameter", {})
@@ -158,17 +148,15 @@ def compute_green_level(insee: str, population: int) -> dict:
     except ImportError:
         return {"ok": False, "error": "pip install shapely pyproj"}
     
-    # Get commune geometry
+    
     url = f"https://geo.api.gouv.fr/communes/{insee}?format=geojson&geometry=contour"
     geojson = requests.get(url, timeout=30).json()
     geom = shape(geojson["geometry"])
     
-    # Calculate commune area in km²
     to_l93 = Transformer.from_crs("EPSG:4326", "EPSG:2154", always_xy=True)
     geom_l93 = transform(to_l93.transform, geom)
     commune_area_km2 = geom_l93.area / 1e6
-    
-    # Get green areas from Overpass
+ 
     if isinstance(geom, MultiPolygon):
         poly = max(geom.geoms, key=lambda g: g.area)
     else:
@@ -193,7 +181,7 @@ out geom;
         timeout=200,
     ).json()
     
-    # Calculate green area
+    
     green_polys = []
     for el in osm.get("elements", []):
         coords_list = [(p["lon"], p["lat"]) for p in el.get("geometry", [])]
@@ -227,19 +215,13 @@ out geom;
         "green_m2_per_person": round((green_area_km2 * 1e6) / population, 1) if population else None,
     }
 
-
-
-# Main API
-
-
 def resolve_city(query: str) -> dict:
     q = query.strip()
     
-    # If INSEE code
     if q.isdigit() and len(q) == 5:
         return {"ok": True, "insee": q}
     
-    # Search by name
+    
     data = _get_json(
         "https://geo.api.gouv.fr/communes",
         {"nom": q, "fields": "code,nom", "boost": "population", "limit": 1},
@@ -263,17 +245,15 @@ def eco_city(query: str, skip_slow: bool = False) -> dict:
     
     insee = resolved["insee"]
     
-    # Fetch all data
     commune = fetch_commune_meta(insee)
     pop = fetch_population(insee)
     elec = fetch_electricity(insee)
     
-    # Compute metrics
+    
     kwh_per_person = None
     if pop.get("ok") and elec.get("ok") and pop.get("population"):
         kwh_per_person = round(elec["consumption_kwh"] / pop["population"], 1)
     
-    # Optional: green level (SLOW - can be skipped)
     if skip_slow:
         green = {"ok": False, "skipped": True, "reason": "skip_slow=True"}
     elif pop.get("ok"):
@@ -284,7 +264,6 @@ def eco_city(query: str, skip_slow: bool = False) -> dict:
     else:
         green = {"ok": False}
     
-    # Air quality (fast)
     air = fetch_air_quality(insee, commune)
     
     return {
@@ -307,11 +286,6 @@ def eco_city(query: str, skip_slow: bool = False) -> dict:
         "green_level": green if green.get("ok") else {"ok": False},
         "air_quality": air if air.get("ok") else {"ok": False},
     }
-
-
-# ---------------------------
-# CLI
-# ---------------------------
 
 if __name__ == "__main__":
     query = sys.argv[1] if len(sys.argv) > 1 else "Rennes"
