@@ -145,9 +145,9 @@ function createCityGrades(scores) {
   const fiveGrades = document.createElement("div");
   fiveGrades.classList.add("five-grades");
 
-  fiveGrades.appendChild(createGrade("Electricité", scores.elec));
-  fiveGrades.appendChild(createGrade("Biodiversité", scores.bio));
-  fiveGrades.appendChild(createGrade("Sobriété", scores.sob));
+  fiveGrades.appendChild(createGrade("Consommation d'Electricité", scores.elec));
+  fiveGrades.appendChild(createGrade("Espace vert", scores.bio));
+  fiveGrades.appendChild(createGrade("Qualité de l'air", scores.sob));
 
   return fiveGrades;
 }
@@ -415,7 +415,6 @@ scoreRange.addEventListener("input", () => {
     filterCities();
 });
 
-// Sync input → slider
 populationInput.addEventListener("input", () => {
     let v = Number(populationInput.value);
     if (v < 0) v = 0;
@@ -466,32 +465,64 @@ async function fetchEcoCity(city) {
 }
 
 function scoreElectricity(kwhPerHab) {
-    if (!kwhPerHab) return null;
+  if (typeof kwhPerHab !== "number") return null;
 
-    if (kwhPerHab < 2500) return 90;
-    if (kwhPerHab < 3500) return 75;
-    if (kwhPerHab < 4500) return 60;
-    return 40;
+  if (kwhPerHab <= 2500) return 95;
+  if (kwhPerHab <= 3200) return 85;
+  if (kwhPerHab <= 4000) return 70;
+  if (kwhPerHab <= 5000) return 55;
+  if (kwhPerHab <= 6500) return 40;
+  return 25;
 }
 
 
-function scoreBiodiversity(greenSurface) {
-    if (!greenSurface) return null;
+function scoreBiodiversity(greenSharePct) {
+  if (typeof greenSharePct !== "number") return null;
 
-    if (greenSurface > 40) return 90;
-    if (greenSurface > 30) return 75;
-    if (greenSurface > 20) return 60;
-    return 40;
+  if (greenSharePct >= 45) return 95;
+  if (greenSharePct >= 35) return 85;
+  if (greenSharePct >= 25) return 70;
+  if (greenSharePct >= 15) return 55;
+  if (greenSharePct >= 8) return 40;
+  return 25;
 }
 
-function scoreAirQuality(no2) {
-    if (!no2) return null;
 
-    if (no2 < 10) return 90;
-    if (no2 < 20) return 75;
-    if (no2 < 30) return 60;
-    return 40;
+function scoreAirQuality(pollutants) {
+  if (!pollutants || typeof pollutants !== "object") return null;
+
+  const limits = {
+    no2: 40,
+    pm10: 45,
+    pm25: 15,
+    o3: 100,
+    so2: 40
+  };
+
+  let worstRatio = null;
+
+  for (const key in limits) {
+    const value = pollutants[key]?.value;
+
+    if (typeof value !== "number") continue;
+
+    const ratio = value / limits[key];
+
+    if (worstRatio === null || ratio > worstRatio) {
+      worstRatio = ratio;
+    }
+  }
+
+  if (worstRatio === null) return null;
+
+  if (worstRatio <= 0.25) return 95;
+  if (worstRatio <= 0.5)  return 85;
+  if (worstRatio <= 0.75) return 70;
+  if (worstRatio <= 1.0)  return 55;
+  if (worstRatio <= 1.5)  return 40;
+  return 25;
 }
+
 
 function averageScore(scores) {
     const validScores = scores.filter(s => typeof s === "number");
@@ -508,9 +539,11 @@ function mapBackendCityToFrontend(data) {
 
 const elecScore = Number(scoreElectricity(data.kwh_per_inhabitant));
 const bioScore = Number(scoreBiodiversity(data.green_level?.green_share_pct));
-const sobScore = Number(
-  scoreAirQuality(data.air_quality?.pollutants?.no2?.value)
+const sobScore = scoreAirQuality(
+  data.air_quality?.pollutants
 );
+
+
 
 
   const globalScore = averageScore([
