@@ -1,3 +1,16 @@
+const controls = document.getElementById("controls");
+
+function updateControlsVisibility() {
+  if (!controls) return;
+
+  if (citiesStore.size === 0) {
+    controls.classList.add("hidden");
+  } else {
+    controls.classList.remove("hidden");
+  }
+}
+
+
 const filterButtons = document.querySelectorAll(".filter");
 console.log(filterButtons);
 let currentFilter = "all";
@@ -90,6 +103,7 @@ function create_city_header(name,dep,hab,sc_global){
 
 
 function createGrade(label, score) {
+    if (typeof score !== "number") score = 0;
     const grade = document.createElement("div");
     grade.classList.add("grade");
 
@@ -127,17 +141,17 @@ function createGrade(label, score) {
 }
 
 
-function createCityGrades(sc_mob, sc_elec, sc_bio, sc_dech, sc_sob) {
-    const fiveGrades = document.createElement("div");
-    fiveGrades.classList.add("five-grades");
+function createCityGrades(scores) {
+  const fiveGrades = document.createElement("div");
+  fiveGrades.classList.add("five-grades");
 
-    fiveGrades.appendChild(createGrade("Electricité", sc_elec));
-    fiveGrades.appendChild(createGrade("Biodiversité", sc_bio));
-    fiveGrades.appendChild(createGrade("Sobriété", sc_sob));
+  fiveGrades.appendChild(createGrade("Electricité", scores.elec));
+  fiveGrades.appendChild(createGrade("Biodiversité", scores.bio));
+  fiveGrades.appendChild(createGrade("Sobriété", scores.sob));
 
-    return fiveGrades;
-
+  return fiveGrades;
 }
+
 
 
 function add_city(name, dep, hab, sc_global, sc_mob, sc_elec, sc_bio, sc_dech, sc_sob) {
@@ -159,15 +173,22 @@ function add_city(name, dep, hab, sc_global, sc_mob, sc_elec, sc_bio, sc_dech, s
 
   city_card.appendChild(create_city_header(name, dep, hab, sc_global));
 
-  const cityScores = { mob: sc_mob, elec: sc_elec, bio: sc_bio, dech: sc_dech, sob: sc_sob };
+const cityScores = {
+  mob: sc_mob,
+  elec: sc_elec,
+  bio: sc_bio,
+  dech: sc_dech,
+  sob: sc_sob
+};
 
-  let grades;
-  if (currentFilter === "all") {
-    grades = createCityGrades(sc_mob, sc_elec, sc_bio, sc_dech, sc_sob);
-  } else {
-    const { label, key } = filterMap[currentFilter];
-    grades = createCityGradesSingle(label, cityScores[key]);
-  }
+let grades;
+if (currentFilter === "all") {
+  grades = createCityGrades(cityScores);
+} else {
+  const { label, key } = filterMap[currentFilter];
+  grades = createCityGradesSingle(label, cityScores[key]);
+}
+
 
   city_card.appendChild(grades);
 
@@ -179,6 +200,8 @@ function add_city(name, dep, hab, sc_global, sc_mob, sc_elec, sc_bio, sc_dech, s
   document.querySelector(".container-city").appendChild(city_card);
 
   updateSliders(); 
+  updateControlsVisibility();
+
 }
 
 function updateSliders() {
@@ -324,6 +347,8 @@ const containerCity = document.querySelector(".container-city");
 resetBtn.addEventListener("click", () => {
   containerCity.innerHTML = "";
   citiesStore.clear();
+updateControlsVisibility();
+
 });
 
 
@@ -337,13 +362,13 @@ function updateCitiesByFilter(filterKey) {
 
     let newGrades;
     if (filterKey === "all") {
-      newGrades = createCityGrades(
-        city.mob,
-        city.elec,
-        city.bio,
-        city.dech,
-        city.sob
-      );
+      newGrades = createCityGrades({
+        mob: city.mob,
+        elec: city.elec,
+        bio: city.bio,
+        dech: city.dech,
+        sob: city.sob
+        });
     } else {
       const { label, key } = filterMap[filterKey];
       newGrades = createCityGradesSingle(label, city[key]);
@@ -446,7 +471,7 @@ function scoreElectricity(kwhPerHab) {
     if (kwhPerHab < 2500) return 90;
     if (kwhPerHab < 3500) return 75;
     if (kwhPerHab < 4500) return 60;
-    return 40;Pairs
+    return 40;
 }
 
 
@@ -481,11 +506,12 @@ function mapBackendCityToFrontend(data) {
   const depCode = String(data.commune.departement).padStart(2, "0");
   const depName = departements[depCode] ?? "Département inconnu";
 
-  const elecScore = scoreElectricity(data.kwh_per_inhabitant);
-  const bioScore = scoreBiodiversity(data.green_level?.green_share_pct);
-  const sobScore = scoreAirQuality(
-    data.air_quality?.pollutants?.no2?.value
-  );
+const elecScore = Number(scoreElectricity(data.kwh_per_inhabitant));
+const bioScore = Number(scoreBiodiversity(data.green_level?.green_share_pct));
+const sobScore = Number(
+  scoreAirQuality(data.air_quality?.pollutants?.no2?.value)
+);
+
 
   const globalScore = averageScore([
     elecScore,
@@ -702,3 +728,7 @@ const departements = {
   "974": "La Réunion",
   "976": "Mayotte"
 };
+
+document.addEventListener("DOMContentLoaded", () => {
+  updateControlsVisibility();
+});
