@@ -58,7 +58,6 @@
     color: #1F2A3C;
     font-weight: bold;
     cursor: pointer;
-    display: none;
 }
 
 .reset-btn {
@@ -74,6 +73,10 @@
 .reset-btn:hover {
     background-color: #ff6b4d;
 }
+.add-city-btn.hidden {
+  display: none;
+}
+
 
 .suggestions {
     position: absolute;
