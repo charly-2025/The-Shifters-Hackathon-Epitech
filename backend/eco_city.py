@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 import datetime as dt
 import json
 import sys
@@ -10,9 +7,7 @@ from typing import Optional
 
 UTC = dt.timezone.utc
 
-# ---------------------------
-# HTTP helpers
-# ---------------------------
+# HTTP
 
 def _get_json(url: str, params: dict = None, timeout: int = 30) -> dict:
     headers = {
@@ -25,9 +20,9 @@ def _get_json(url: str, params: dict = None, timeout: int = 30) -> dict:
     return r.json()
 
 
-# ---------------------------
-# Core functions
-# ---------------------------
+
+# functions
+
 
 def fetch_commune_meta(insee: str) -> dict:
     url = f"https://geo.api.gouv.fr/communes/{insee}"
@@ -233,9 +228,9 @@ out geom;
     }
 
 
-# ---------------------------
+
 # Main API
-# ---------------------------
+
 
 def resolve_city(query: str) -> dict:
     q = query.strip()
