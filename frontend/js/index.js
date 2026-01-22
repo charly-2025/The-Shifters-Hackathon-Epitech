@@ -321,50 +321,71 @@ function updateCitiesByFilter(filterKey) {
     });
 }
 
+
+let cities = [];
+
+// Sélecteurs
 const populationRange = document.getElementById("populationRange");
 const populationInput = document.getElementById("populationInput");
 
 const scoreRange = document.getElementById("scoreRange");
 const scoreInput = document.getElementById("scoreInput");
 
-const cityElements = document.querySelectorAll(".city");
+// Fonction pour scanner les villes présentes dans le DOM
+function collectCitiesFromDOM() {
+    const cityElements = document.querySelectorAll(".city");
 
-const cities = Array.from(cityElements).map(city => {
-    const habitantsText = city.querySelector(".hab")?.textContent || "0";
-    const habitants = Number(habitantsText.replace(/\D/g, ""));
+    cities = Array.from(cityElements).map(city => {
+        const habText = city.querySelector(".hab")?.textContent || "0";
+        const habitants = Number(habText.replace(/\D/g, ""));
 
-    const scoreText = city.querySelector(".global")?.textContent || "0";
-    const score = Number(scoreText.split("/")[0]);
+        const scoreText = city.querySelector(".global")?.textContent || "0";
+        const score = Number(scoreText.split("/")[0]);
 
-    return { element: city, habitants, score };
-});
+        return {
+            element: city,
+            habitants,
+            score
+        };
+    });
 
-const maxPopulation = Math.max(...cities.map(c => c.habitants));
+    updatePopulationLimits();
+    filterCities();
+}
 
-populationRange.min = 0;
-populationRange.max = maxPopulation;
-populationRange.value = maxPopulation;
+// Met à jour la valeur max du slider
+function updatePopulationLimits() {
+    if (!cities.length) return;
 
-populationInput.min = 0;
-populationInput.max = maxPopulation;
-populationInput.value = maxPopulation;
+    const maxPop = Math.max(...cities.map(c => c.habitants));
 
-scoreRange.value = 0;
-scoreInput.value = 0;
+    populationRange.min = 0;
+    populationRange.max = maxPop;
+    populationInput.min = 0;
+    populationInput.max = maxPop;
 
+    // Si jamais vide → reset
+    if (!populationRange.value || populationRange.value > maxPop) {
+        populationRange.value = maxPop;
+        populationInput.value = maxPop;
+    }
+}
+
+// Fonction de filtre
 function filterCities() {
-    const popMax = Number(populationRange.value);
-    const scoreMin = Number(scoreRange.value);
+    const popMax = Number(populationRange.value || Infinity);
+    const scoreMin = Number(scoreRange.value || 0);
 
     cities.forEach(city => {
-        const show =
+        const visible =
             city.habitants <= popMax &&
             city.score >= scoreMin;
 
-        city.element.style.display = show ? "block" : "none";
+        city.element.style.display = visible ? "" : "none";
     });
 }
 
+// Sync slider → input
 populationRange.addEventListener("input", () => {
     populationInput.value = populationRange.value;
     filterCities();
@@ -375,10 +396,11 @@ scoreRange.addEventListener("input", () => {
     filterCities();
 });
 
+// Sync input → slider
 populationInput.addEventListener("input", () => {
     let v = Number(populationInput.value);
     if (v < 0) v = 0;
-    if (v > maxPopulation) v = maxPopulation;
+    if (v > populationRange.max) v = populationRange.max;
 
     populationRange.value = v;
     filterCities();
@@ -392,6 +414,25 @@ scoreInput.addEventListener("input", () => {
     scoreRange.value = v;
     filterCities();
 });
+
+const cityContainer = document.querySelector(".container-city");
+
+if (cityContainer) {
+    const observer = new MutationObserver(() => {
+        collectCitiesFromDOM();
+    });
+
+    observer.observe(cityContainer, {
+        childList: true,
+        subtree: false
+    });
+}
+
+// Sécurité au chargement initial
+document.addEventListener("DOMContentLoaded", () => {
+    collectCitiesFromDOM();
+});
+
 
 
 async function fetchEcoCity(city) {
