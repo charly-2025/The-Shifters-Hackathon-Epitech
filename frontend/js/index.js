@@ -1,5 +1,11 @@
 const controls = document.getElementById("controls");
+const citiesStore = new Map();
+const input = document.querySelector(".search-input");
+const suggestionsBox = document.querySelector(".suggestions");
+const addBtn = document.querySelector(".add-city-btn");
 
+
+let selectedCity = null;
 function updateControlsVisibility() {
   if (!controls) return;
 
@@ -10,6 +16,9 @@ function updateControlsVisibility() {
   }
 }
 
+function updateSliders() {
+  filterCities();
+}
 
 const filterButtons = document.querySelectorAll(".filter");
 console.log(filterButtons);
@@ -103,7 +112,7 @@ function create_city_header(name,dep,hab,sc_global){
 
 
 function createGrade(label, score) {
-    if (typeof score !== "number") score = 0;
+    if (!Number.isFinite(score)) score = 0;
     const grade = document.createElement("div");
     grade.classList.add("grade");
 
@@ -204,34 +213,16 @@ if (currentFilter === "all") {
 
 }
 
-function updateSliders() {
-  const cities = getCitiesForFilter();
-  if (cities.length === 0) return;
-
-  const maxPopulation = Math.max(...cities.map(c => c.habitants));
-
-  populationRange.max = maxPopulation;
-  populationInput.max = maxPopulation;
-
-  populationRange.value = maxPopulation;
-  populationInput.value = maxPopulation;
+function getCitiesForFilter() {
+  return Array.from(citiesStore.entries()).map(([name, city]) => {
+    return {
+      name,
+      habitants: city.hab,
+      score: city.global,
+      element: document.querySelector(`.city[data-city="${name}"]`)
+    };
+  }).filter(c => c.element);
 }
-
-
-
-
-
-
-const input = document.querySelector(".search-input");
-const suggestionsBox = document.querySelector(".suggestions");
-const addBtn = document.querySelector(".add-city-btn");
-
-let selectedCity = null;
-
-
-
-
-const citiesStore = new Map();
 
 
 const filterMap = {
@@ -262,40 +253,43 @@ function createCityGradesSingle(label, score) {
 
 
 input.addEventListener("input", () => {
-    const value = input.value.trim().toLowerCase();
-    suggestionsBox.innerHTML = "";
-    addBtn.style.display = "none";
-    selectedCity = null;
+  const value = input.value.trim().toLowerCase();
+  suggestionsBox.innerHTML = "";
+  addBtn.classList.add("hidden");
+  selectedCity = null;
 
-    if (value.length < 2) return;
+  if (value.length < 2) return;
 
-    citySuggestions
-        .filter(city => city.toLowerCase().includes(value))
-        .slice(0, 10)
-        .forEach(city => {
-            const item = document.createElement("div");
-            item.classList.add("suggestion-item");
-            item.innerHTML = `<i class="fas fa-search"></i> ${city}`;
+  citySuggestions
+    .filter(city => city.toLowerCase().includes(value))
+    .slice(0, 10)
+    .forEach(city => {
+      const item = document.createElement("div");
+      item.classList.add("suggestion-item");
+      item.textContent = city;
 
-            item.addEventListener("click", () => {
-                input.value = city;
-                selectedCity = city;
-                suggestionsBox.innerHTML = "";
-                addBtn.style.display = "block";
-            });
+      item.addEventListener("click", () => {
+        input.value = city;
+        selectedCity = city;
+        suggestionsBox.innerHTML = "";
+        addBtn.classList.remove("hidden"); // ✅
+      });
 
-            suggestionsBox.appendChild(item);
-        });
+      suggestionsBox.appendChild(item);
+    });
 });
-
 
 
 
 document.addEventListener("click", (e) => {
-    if (!e.target.closest(".search-box")) {
-        suggestionsBox.innerHTML = "";
-    }
+  if (
+    !e.target.closest(".search-input") &&
+    !e.target.closest(".suggestions")
+  ) {
+    suggestionsBox.innerHTML = "";
+  }
 });
+
 
 addBtn.addEventListener("click", async () => {
   if (!selectedCity) return;
@@ -325,7 +319,8 @@ addBtn.addEventListener("click", async () => {
 
     input.value = "";
     selectedCity = null;
-    addBtn.style.display = "none";
+    addBtn.classList.add("hidden");
+
   }
 });
 
@@ -394,7 +389,12 @@ function getCitiesForFilter() {
 }
 
 
+
+
 function filterCities() {
+  if (citiesStore.size === 0) return;
+  if (!populationRange || !scoreRange) return;
+
   const popMax = Number(populationRange.value);
   const scoreMin = Number(scoreRange.value);
 
@@ -403,6 +403,7 @@ function filterCities() {
     city.element.style.display = show ? "block" : "none";
   });
 }
+
 
 
 populationRange.addEventListener("input", () => {
@@ -435,20 +436,8 @@ scoreInput.addEventListener("input", () => {
 
 const cityContainer = document.querySelector(".container-city");
 
-if (cityContainer) {
-    const observer = new MutationObserver(() => {
-        collectCitiesFromDOM();
-    });
 
-    observer.observe(cityContainer, {
-        childList: true,
-        subtree: false
-    });
-}
 
-document.addEventListener("DOMContentLoaded", () => {
-    collectCitiesFromDOM();
-});
 
 
 
@@ -537,8 +526,8 @@ function mapBackendCityToFrontend(data) {
   const depCode = String(data.commune.departement).padStart(2, "0");
   const depName = departements[depCode] ?? "Département inconnu";
 
-const elecScore = Number(scoreElectricity(data.kwh_per_inhabitant));
-const bioScore = Number(scoreBiodiversity(data.green_level?.green_share_pct));
+const elecScore = scoreElectricity(data.kwh_per_inhabitant);
+const bioScore = scoreBiodiversity(data.green_level?.green_share_pct);
 const sobScore = scoreAirQuality(
   data.air_quality?.pollutants
 );
@@ -764,6 +753,12 @@ const departements = {
 
 document.addEventListener("DOMContentLoaded", () => {
   updateControlsVisibility();
+  populationRange.max = 2500000;
+  populationRange.value = populationRange.max;
+  populationInput.value = populationRange.max;
+
+  scoreRange.value = 0;
+  scoreInput.value = 0;
 });
 
 let selectedCities = [];
@@ -788,31 +783,29 @@ function bindCompareButtons() {
     });
 }
 
-function toggleCitySelection(city, btn) {
+function toggleCitySelection(cityEl, btn) {
+  const cityName = cityEl.dataset.city;
 
-    const index = selectedCities.indexOf(city);
+  const index = selectedCities.indexOf(cityName);
 
-
-    if (index !== -1) {
-        selectedCities.splice(index, 1);
-        city.classList.remove("compare-selected");
-        btn.textContent = "Sélectionner pour comparer";
-    } 
-    
-    else {
-
-        if (selectedCities.length >= 3) {
-            alert("Maximum 3 villes peuvent être comparées.");
-            return;
-        }
-
-        selectedCities.push(city);
-        city.classList.add("compare-selected");
-        btn.textContent = "Retirer";
+  if (index !== -1) {
+    selectedCities.splice(index, 1);
+    cityEl.classList.remove("compare-selected");
+    btn.textContent = "Sélectionner pour comparer";
+  } else {
+    if (selectedCities.length >= 3) {
+      alert("Maximum 3 villes peuvent être comparées.");
+      return;
     }
 
-    updateCompareBar();
+    selectedCities.push(cityName);
+    cityEl.classList.add("compare-selected");
+    btn.textContent = "Retirer";
+  }
+
+  updateCompareBar();
 }
+
 
 
 function updateCompareBar() {
@@ -829,19 +822,13 @@ function updateCompareBar() {
 
 
 launchCompareBtn.addEventListener("click", () => {
+  if (selectedCities.length < 2) {
+    alert("Sélectionne au moins 2 villes pour comparer.");
+    return;
+  }
 
-    if (selectedCities.length < 2) {
-        alert("Sélectionne au moins 2 villes pour comparer.");
-        return;
-    }
-
-    const names = selectedCities.map(city =>
-        city.querySelector(".name-stat p")?.textContent.trim()
-    );
-
-    console.log("Comparaison :", names);
-
-    alert("Comparaison lancée :\n" + names.join(" vs "));
+  console.log("Comparaison :", selectedCities);
+  openCompareModal();
 });
 
 
@@ -900,12 +887,12 @@ function extractCityData(cityEl) {
     return { name, global, habitants, categories };
 }
 
-// Ouvre la modal
 function openCompareModal() {
 
-    const citiesData = selectedCities.map(city =>
-        extractCityData(city)
-    );
+    const citiesData = selectedCities.map(name => {
+    const cityEl = document.querySelector(`.city[data-city="${name}"]`);
+    return extractCityData(cityEl);
+  });
 
     buildCompareModal(citiesData);
 
