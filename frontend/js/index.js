@@ -23,6 +23,18 @@ function cityAlreadyExists(name) {
     return !!document.querySelector(`.city[data-city="${name}"]`);
 }
 
+function setAddButtonLoading(isLoading) {
+  if (isLoading) {
+    addBtn.classList.add("loading");
+    addBtn.textContent = "Chargement";
+    addBtn.disabled = true;
+  } else {
+    addBtn.classList.remove("loading");
+    addBtn.textContent = "Ajouter";
+    addBtn.disabled = false;
+  }
+}
+
 
 function create_city_card(){
     let city_card = document.createElement("div");
@@ -119,7 +131,7 @@ function createCityGrades(sc_mob, sc_elec, sc_bio, sc_dech, sc_sob) {
     const fiveGrades = document.createElement("div");
     fiveGrades.classList.add("five-grades");
 
-    fiveGrades.appendChild(createGrade("Mobilité", sc_mob));
+    fiveGrades.appendChild(createGrade("Electricité", sc_elec));
     fiveGrades.appendChild(createGrade("Biodiversité", sc_bio));
     fiveGrades.appendChild(createGrade("Sobriété", sc_sob));
 
@@ -129,32 +141,59 @@ function createCityGrades(sc_mob, sc_elec, sc_bio, sc_dech, sc_sob) {
 
 
 function add_city(name, dep, hab, sc_global, sc_mob, sc_elec, sc_bio, sc_dech, sc_sob) {
-    if (cityAlreadyExists(name)) return;
+  if (cityAlreadyExists(name)) return;
 
-    const city_card = create_city_card();
-    city_card.dataset.city = name;
+  citiesStore.set(name, {
+    dep,
+    hab,
+    global: sc_global,
+    mob: sc_mob,
+    elec: sc_elec,
+    bio: sc_bio,
+    dech: sc_dech,
+    sob: sc_sob
+  });
 
-    city_card.appendChild(create_city_header(name, dep, hab, sc_global));
+  const city_card = create_city_card();
+  city_card.dataset.city = name;
 
-    const cityScores = { mob: sc_mob, elec: sc_elec, bio: sc_bio, dech: sc_dech, sob: sc_sob };
+  city_card.appendChild(create_city_header(name, dep, hab, sc_global));
 
-    let grades;
-    if (currentFilter === "all") {
-        grades = createCityGrades(sc_mob, sc_elec, sc_bio, sc_dech, sc_sob);
-    } else {
-        const { label, key } = filterMap[currentFilter];
-        grades = createCityGradesSingle(label, cityScores[key]);
-    }
+  const cityScores = { mob: sc_mob, elec: sc_elec, bio: sc_bio, dech: sc_dech, sob: sc_sob };
 
-    city_card.appendChild(grades);
+  let grades;
+  if (currentFilter === "all") {
+    grades = createCityGrades(sc_mob, sc_elec, sc_bio, sc_dech, sc_sob);
+  } else {
+    const { label, key } = filterMap[currentFilter];
+    grades = createCityGradesSingle(label, cityScores[key]);
+  }
 
-    const compare_button = document.createElement("button");
-    compare_button.classList.add("compare");
-    compare_button.textContent = "Sélectionner pour comparer";
-    city_card.appendChild(compare_button);
+  city_card.appendChild(grades);
 
-    document.querySelector(".container-city").appendChild(city_card);
+  const compare_button = document.createElement("button");
+  compare_button.classList.add("compare");
+  compare_button.textContent = "Sélectionner pour comparer";
+  city_card.appendChild(compare_button);
+
+  document.querySelector(".container-city").appendChild(city_card);
+
+  updateSliders(); 
 }
+
+function updateSliders() {
+  const cities = getCitiesForFilter();
+  if (cities.length === 0) return;
+
+  const maxPopulation = Math.max(...cities.map(c => c.habitants));
+
+  populationRange.max = maxPopulation;
+  populationInput.max = maxPopulation;
+
+  populationRange.value = maxPopulation;
+  populationInput.value = maxPopulation;
+}
+
 
 
 
@@ -169,38 +208,8 @@ let selectedCity = null;
 
 
 
-const citiesData = {
-    Rennes: {
-        dep: "35000 · Bretagne",
-        hab: 220488,
-        global: 82,
-        mob: 88,
-        elec: 79,
-        bio: 76,
-        dech: 81,
-        sob: 85
-    },
-    Paris: {
-        dep: "75000 · Île-de-France",
-        hab: 2148327,
-        global: 78,
-        mob: 85,
-        elec: 70,
-        bio: 65,
-        dech: 80,
-        sob: 75
-    },
-    Lyon: {
-        dep: "69000 · Auvergne-Rhône-Alpes",
-        hab: 515695,
-        global: 80,
-        mob: 83,
-        elec: 75,
-        bio: 72,
-        dech: 78,
-        sob: 80
-    }
-};
+const citiesStore = new Map();
+
 
 const filterMap = {
     all: null,
@@ -266,60 +275,84 @@ document.addEventListener("click", (e) => {
 });
 
 addBtn.addEventListener("click", async () => {
-    if (!selectedCity) return;
+  if (!selectedCity) return;
 
-    try {
-        const data = await fetchEcoCity(selectedCity);
-        const city = mapBackendCityToFrontend(data);
+  showPageLoader();
 
-        add_city(
-            city.name,
-            city.dep,
-            city.hab,
-            city.global,
-            city.mob,
-            city.elec,
-            city.bio,
-            city.dech,
-            city.sob
-        );
+  try {
+    const data = await fetchEcoCity(selectedCity);
+    const city = mapBackendCityToFrontend(data);
 
-    } catch (err) {
-        console.error(err);
-        alert("Impossible de récupérer les données de la ville");
-    }
+    add_city(
+      city.name,
+      city.dep,
+      city.hab,
+      city.global,
+      city.mob,
+      city.elec,
+      city.bio,
+      city.dech,
+      city.sob
+    );
+  } catch (err) {
+    console.error(err);
+    alert("Impossible de récupérer les données de la ville");
+  } finally {
+    hidePageLoader();
 
     input.value = "";
     selectedCity = null;
     addBtn.style.display = "none";
+  }
 });
+
+
+const pageLoader = document.getElementById("page-loader");
+
+function showPageLoader() {
+  pageLoader.classList.remove("hidden");
+}
+
+function hidePageLoader() {
+  pageLoader.classList.add("hidden");
+}
 
 
 const resetBtn = document.querySelector(".reset-btn");
 const containerCity = document.querySelector(".container-city");
 
 resetBtn.addEventListener("click", () => {
-    containerCity.innerHTML = "";
+  containerCity.innerHTML = "";
+  citiesStore.clear();
 });
 
+
 function updateCitiesByFilter(filterKey) {
-    document.querySelectorAll(".city").forEach(cityCard => {
-        const cityName = cityCard.dataset.city;
-        const city = citiesData[cityName];
+  document.querySelectorAll(".city").forEach(cityCard => {
+    const cityName = cityCard.dataset.city;
+    const city = citiesStore.get(cityName);
+    if (!city) return;
 
-        const oldGrades = cityCard.querySelector(".five-grades");
+    const oldGrades = cityCard.querySelector(".five-grades");
 
-        let newGrades;
-        if (filterKey === "all") {
-            newGrades = createCityGrades(city.mob, city.elec, city.bio, city.dech, city.sob);
-        } else {
-            const { label, key } = filterMap[filterKey];
-            newGrades = createCityGradesSingle(label, city[key]);
-        }
+    let newGrades;
+    if (filterKey === "all") {
+      newGrades = createCityGrades(
+        city.mob,
+        city.elec,
+        city.bio,
+        city.dech,
+        city.sob
+      );
+    } else {
+      const { label, key } = filterMap[filterKey];
+      newGrades = createCityGradesSingle(label, city[key]);
+    }
 
-        oldGrades.replaceWith(newGrades);
-    });
+    oldGrades.replaceWith(newGrades);
+  });
 }
+
 
 const populationRange = document.getElementById("populationRange");
 const populationInput = document.getElementById("populationInput");
@@ -327,43 +360,25 @@ const populationInput = document.getElementById("populationInput");
 const scoreRange = document.getElementById("scoreRange");
 const scoreInput = document.getElementById("scoreInput");
 
-const cityElements = document.querySelectorAll(".city");
+function getCitiesForFilter() {
+  return Array.from(document.querySelectorAll(".city")).map(city => {
+    const hab = Number(city.querySelector(".hab")?.textContent.replace(/\D/g, ""));
+    const score = Number(city.querySelector(".global")?.textContent.split("/")[0]);
+    return { element: city, habitants: hab, score };
+  });
+}
 
-const cities = Array.from(cityElements).map(city => {
-    const habitantsText = city.querySelector(".hab")?.textContent || "0";
-    const habitants = Number(habitantsText.replace(/\D/g, ""));
-
-    const scoreText = city.querySelector(".global")?.textContent || "0";
-    const score = Number(scoreText.split("/")[0]);
-
-    return { element: city, habitants, score };
-});
-
-const maxPopulation = Math.max(...cities.map(c => c.habitants));
-
-populationRange.min = 0;
-populationRange.max = maxPopulation;
-populationRange.value = maxPopulation;
-
-populationInput.min = 0;
-populationInput.max = maxPopulation;
-populationInput.value = maxPopulation;
-
-scoreRange.value = 0;
-scoreInput.value = 0;
 
 function filterCities() {
-    const popMax = Number(populationRange.value);
-    const scoreMin = Number(scoreRange.value);
+  const popMax = Number(populationRange.value);
+  const scoreMin = Number(scoreRange.value);
 
-    cities.forEach(city => {
-        const show =
-            city.habitants <= popMax &&
-            city.score >= scoreMin;
-
-        city.element.style.display = show ? "block" : "none";
-    });
+  getCitiesForFilter().forEach(city => {
+    const show = city.habitants <= popMax && city.score >= scoreMin;
+    city.element.style.display = show ? "block" : "none";
+  });
 }
+
 
 populationRange.addEventListener("input", () => {
     populationInput.value = populationRange.value;
@@ -398,7 +413,7 @@ async function fetchEcoCity(city) {
     const response = await fetch(
         `http://127.0.0.1:8000/eco?city=${encodeURIComponent(city)}`
     );
-
+    console.log(response);
     if (!response.ok) {
         throw new Error("Erreur serveur");
     }
@@ -412,7 +427,7 @@ function scoreElectricity(kwhPerHab) {
     if (kwhPerHab < 2500) return 90;
     if (kwhPerHab < 3500) return 75;
     if (kwhPerHab < 4500) return 60;
-    return 40;
+    return 40;Pairs
 }
 
 
@@ -444,30 +459,36 @@ function averageScore(scores) {
 }
 
 function mapBackendCityToFrontend(data) {
-    const elecScore = scoreElectricity(data.kwh_per_inhabitant);
-    const bioScore = scoreBiodiversity(data.green_surface); // si dispo plus tard
-    const sobScore = scoreAirQuality(data.air_quality?.pollutants?.no2?.value);
+  const depCode = String(data.commune.departement).padStart(2, "0");
+  const depName = departements[depCode] ?? "Département inconnu";
 
-    const globalScore = averageScore([
-        elecScore,
-        bioScore,
-        sobScore
-    ]);
+  const elecScore = scoreElectricity(data.kwh_per_inhabitant);
+  const bioScore = scoreBiodiversity(data.green_level?.green_share_pct);
+  const sobScore = scoreAirQuality(
+    data.air_quality?.pollutants?.no2?.value
+  );
 
-    return {
-        name: data.commune.name,
-        dep: `${data.commune.departement} · ${data.commune.region}`,
-        hab: data.population?.value ?? 0,
+  const globalScore = averageScore([
+    elecScore,
+    bioScore,
+    sobScore
+  ]);
 
-        global: globalScore ?? 0,
-        elec: elecScore ?? 0,
-        bio: bioScore ?? 0,
-        sob: sobScore ?? 0,
+  return {
+    name: data.commune.name,
+    dep: `${depCode} · ${depName}`,
+    hab: data.population?.value ?? 0,
 
-        mob: null,
-        dech: null
-    };
+    global: globalScore ?? 0,
+    elec: elecScore ?? 0,
+    bio: bioScore ?? 0,
+    sob: sobScore ?? 0,
+
+    mob: null,
+    dech: null
+  };
 }
+
 
 const citySuggestions = [
   "Paris",
@@ -547,3 +568,118 @@ const citySuggestions = [
   "Hyères",
   "Draguignan"
 ];
+
+populationRange.min = 0;
+populationInput.min = 0;
+
+scoreRange.min = 0;
+scoreRange.max = 100;
+scoreInput.min = 0;
+scoreInput.max = 100;
+
+scoreRange.value = 0;
+scoreInput.value = 0;
+
+const departements = {
+  "01": "Ain",
+  "02": "Aisne",
+  "03": "Allier",
+  "04": "Alpes-de-Haute-Provence",
+  "05": "Hautes-Alpes",
+  "06": "Alpes-Maritimes",
+  "07": "Ardèche",
+  "08": "Ardennes",
+  "09": "Ariège",
+  "10": "Aube",
+  "11": "Aude",
+  "12": "Aveyron",
+  "13": "Bouches-du-Rhône",
+  "14": "Calvados",
+  "15": "Cantal",
+  "16": "Charente",
+  "17": "Charente-Maritime",
+  "18": "Cher",
+  "19": "Corrèze",
+  "2A": "Corse-du-Sud",
+  "2B": "Haute-Corse",
+  "21": "Côte-d'Or",
+  "22": "Côtes-d'Armor",
+  "23": "Creuse",
+  "24": "Dordogne",
+  "25": "Doubs",
+  "26": "Drôme",
+  "27": "Eure",
+  "28": "Eure-et-Loir",
+  "29": "Finistère",
+  "30": "Gard",
+  "31": "Haute-Garonne",
+  "32": "Gers",
+  "33": "Gironde",
+  "34": "Hérault",
+  "35": "Ille-et-Vilaine",
+  "36": "Indre",
+  "37": "Indre-et-Loire",
+  "38": "Isère",
+  "39": "Jura",
+  "40": "Landes",
+  "41": "Loir-et-Cher",
+  "42": "Loire",
+  "43": "Haute-Loire",
+  "44": "Loire-Atlantique",
+  "45": "Loiret",
+  "46": "Lot",
+  "47": "Lot-et-Garonne",
+  "48": "Lozère",
+  "49": "Maine-et-Loire",
+  "50": "Manche",
+  "51": "Marne",
+  "52": "Haute-Marne",
+  "53": "Mayenne",
+  "54": "Meurthe-et-Moselle",
+  "55": "Meuse",
+  "56": "Morbihan",
+  "57": "Moselle",
+  "58": "Nièvre",
+  "59": "Nord",
+  "60": "Oise",
+  "61": "Orne",
+  "62": "Pas-de-Calais",
+  "63": "Puy-de-Dôme",
+  "64": "Pyrénées-Atlantiques",
+  "65": "Hautes-Pyrénées",
+  "66": "Pyrénées-Orientales",
+  "67": "Bas-Rhin",
+  "68": "Haut-Rhin",
+  "69": "Rhône",
+  "70": "Haute-Saône",
+  "71": "Saône-et-Loire",
+  "72": "Sarthe",
+  "73": "Savoie",
+  "74": "Haute-Savoie",
+  "75": "Paris",
+  "76": "Seine-Maritime",
+  "77": "Seine-et-Marne",
+  "78": "Yvelines",
+  "79": "Deux-Sèvres",
+  "80": "Somme",
+  "81": "Tarn",
+  "82": "Tarn-et-Garonne",
+  "83": "Var",
+  "84": "Vaucluse",
+  "85": "Vendée",
+  "86": "Vienne",
+  "87": "Haute-Vienne",
+  "88": "Vosges",
+  "89": "Yonne",
+  "90": "Territoire de Belfort",
+  "91": "Essonne",
+  "92": "Hauts-de-Seine",
+  "93": "Seine-Saint-Denis",
+  "94": "Val-de-Marne",
+  "95": "Val-d'Oise",
+  "971": "Guadeloupe",
+  "972": "Martinique",
+  "973": "Guyane",
+  "974": "La Réunion",
+  "976": "Mayotte"
+};
