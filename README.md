@@ -23,13 +23,6 @@ The backend needs an OpenAQ API key in the `OPENAQ_API_KEY` environment variable
 
 No secret is committed: create your own local `.env` file.
 
-## Team
-
-- Charly Richard-Fromont
-- Noa Loussouarn
-- Baptiste Mesnager
-- gabriel
-
 ---
 
 ## Technical documentation
