@@ -1,4 +1,40 @@
-## Commit Convention
+# The Shifters: city carbon footprint
+
+> Built at **Epitech Rennes** · B-TBM-100 · Product Design Hackathon · January 2026
+
+## Overview
+
+Web application built during a hackathon for the **The Shifters** association. Search for a city and get its environmental score, computed from open data (air quality, mobility...). The goal: give the association concrete material to convince local authorities, based on real examples.
+
+## Features
+
+- City search and environmental score
+- Python backend aggregating open data APIs (OpenAQ, mobility)
+- HTML / CSS / JavaScript frontend with detailed modal cards
+- Scoring criteria documented in `criteres et api.md`
+
+## Tech stack
+
+`Python` · `FastAPI / Uvicorn` · `JavaScript` · `HTML / CSS` · `OpenAQ API`
+
+## Configuration
+
+The backend needs an OpenAQ API key in the `OPENAQ_API_KEY` environment variable.
+
+No secret is committed: create your own local `.env` file.
+
+## Team
+
+- Charly Richard-Fromont
+- Noa Loussouarn
+- Baptiste Mesnager
+- gabriel
+
+---
+
+## Technical documentation
+
+### Commit Convention
 ```
 Format of the commit message: KARMA GIT
 
@@ -23,3 +59,7 @@ USEFUL <scope>:
   - Figma
 
 ```
+
+---
+
+More of my work on my [portfolio](https://charly-2025.github.io/myPortfolio/).
