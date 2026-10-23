@@ -17,11 +17,30 @@ Web application built during a hackathon for the **The Shifters** association. S
 
 `Python` · `FastAPI / Uvicorn` · `JavaScript` · `HTML / CSS` · `OpenAQ API`
 
-## Configuration
+## Getting started
 
-The backend needs an OpenAQ API key in the `OPENAQ_API_KEY` environment variable.
+Requirements: Python 3 and a free [OpenAQ](https://openaq.org) API key.
 
-No secret is committed: create your own local `.env` file.
+```bash
+cd backend
+pip install fastapi uvicorn requests
+OPENAQ_API_KEY=<your key> uvicorn backend:app --reload
+```
+
+The API starts on `http://127.0.0.1:8000` and exposes the `/eco` endpoint used
+by the frontend. Then open `frontend/index.html` in your browser and search for
+a city.
+
+No secret is committed: the API key is only read from the environment.
+
+## Repository structure
+
+```
+backend/backend.py     FastAPI app exposing the /eco endpoint
+backend/eco_city.py    data collection and environmental score computation
+frontend/              search page, result modal and styles
+criteres et api.md     scoring criteria and data sources
+```
 
 ---
 
