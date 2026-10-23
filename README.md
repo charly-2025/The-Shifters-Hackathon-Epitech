@@ -1,4 +1,4 @@
-# The Shifters: city carbon footprint
+# Hackathon: The Shifters
 
 > Built at **Epitech Rennes** · B-TBM-100 · Product Design Hackathon · January 2026
 
